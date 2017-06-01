@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	es "github.com/altairsix/eventsource"
-	i "github.com/pfa5007/inventory-eventsource/inventory"
+	i "github.com/paul5007/inventory-eventsource/inventory"
 	"log"
 	"os"
 )
