@@ -28,10 +28,8 @@ func (p *Product) On(event es.Event) error {
 		p.SellPrice = e.SellPrice
 	case *ProductBought:
 		p.Quantity += e.QuantityBought
-		p.BuyPrice = e.BuyPrice
 	case *ProductSold:
 		p.Quantity -= e.QuantitySold
-		p.SellPrice = e.SellPrice
 	case *ProductSupplierChanged:
 		p.SupplierId = e.SupplierId
 	default:
@@ -59,6 +57,9 @@ func (p *Product) Apply(ctx context.Context, command es.Command) ([]es.Event, er
 		return []es.Event{productCreated}, nil
 
 	case *BuyProduct:
+		if c.BuyPrice > p.BuyPrice {
+			return nil, fmt.Errorf("Can't buy product(%+v) at price(%+v), which is above max price(%+v)\n", c.AggregateID(), c.BuyPrice, p.BuyPrice)
+		}
 		productBought := &ProductBought{
 			Model:          es.Model{ID: c.AggregateID(), Version: p.Version + 1, At: time.Now()},
 			QuantityBought: c.QuantityBought,
@@ -69,6 +70,9 @@ func (p *Product) Apply(ctx context.Context, command es.Command) ([]es.Event, er
 	case *SellProduct:
 		if p.Quantity-c.QuantitySold <= 0 {
 			return nil, fmt.Errorf("Unable to sell quantity(%+v) of product(%+v)\n", c.QuantitySold, c.AggregateID())
+		}
+		if c.SellPrice < p.SellPrice {
+			return nil, fmt.Errorf("Can't sell product(%+v) at price(%+v), which is below bottom line price(%+v)\n", c.AggregateID(), c.SellPrice, p.SellPrice)
 		}
 		productSold := &ProductSold{
 			Model:        es.Model{ID: c.AggregateID(), Version: p.Version + 1, At: time.Now()},
